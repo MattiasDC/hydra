@@ -369,3 +369,29 @@ def test_failure_rate(max_failure_rate: float, tmpdir: Path) -> None:
         assert error_string in err
     else:
         assert error_string not in err
+
+
+def test_example_with_deprecated_search_space(
+    tmpdir: Path,
+) -> None:
+    cmd = [
+        sys.executable,
+        "example/sphere.py",
+        "--multirun",
+        "--config-dir=tests/conf",
+        "--config-name=test_deprecated_search_space",
+        "hydra.sweep.dir=" + str(tmpdir),
+        "hydra.job.chdir=True",
+        "hydra.sweeper.n_trials=20",
+        "hydra.sweeper.n_jobs=1",
+    ]
+
+    out, err = run_process(cmd, print_error=False, raise_exception=False)
+    assert (
+        "`hydra.sweeper.search_space` is deprecated and will be removed in the next major release."
+        in err
+    )
+    returns = OmegaConf.load(f"{tmpdir}/optimization_results.yaml")
+    assert isinstance(returns, DictConfig)
+    assert returns.name == "optuna"
+    assert abs(returns["best_params"]["x"]) <= 5.5
